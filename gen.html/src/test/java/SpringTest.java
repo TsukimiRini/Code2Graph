@@ -3,6 +3,7 @@ import edu.pku.code2graph.gen.html.JsoupGenerator;
 import edu.pku.code2graph.gen.html.SpringHandler;
 import edu.pku.code2graph.gen.html.StandardDialectParser;
 import edu.pku.code2graph.gen.html.model.DialectNode;
+import edu.pku.code2graph.gen.html.model.NodeType;
 import edu.pku.code2graph.io.GraphVizExporter;
 import edu.pku.code2graph.model.Edge;
 import edu.pku.code2graph.model.ElementNode;
@@ -16,8 +17,12 @@ import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -106,8 +111,57 @@ public class SpringTest {
 
   @Test
   public void testGenerator() throws IOException {
+    filePaths.clear();
+    traversePath("/Users/tannpopo/Documents/Study/ChangeLint/code2graph-dataset/Spring/zheng");
     JsoupGenerator generator = new JsoupGenerator();
     Graph<Node, Edge> graph = generator.generateFrom().files(filePaths);
-    GraphVizExporter.printAsDot(graph);
+//    GraphVizExporter.printAsDot(graph);
+    File outFile =
+        new File(
+            "/Users/tannpopo/Documents/Study/ChangeLint/code2graph-dataset/Spring/mall-html-uri.out");
+    if (!outFile.exists()) {
+      outFile.createNewFile();
+    }
+    FileWriter fw = new FileWriter(outFile);
+    for (Node node : graph.vertexSet()) {
+      if (node instanceof ElementNode
+          && node.getType().equals(NodeType.INLINE_VAR)
+          && !((ElementNode) node).getName().contains("$")) {
+        System.out.println(((ElementNode) node).getName());
+        fw.write(((ElementNode) node).getUri().toString());
+        fw.write("\n");
+      }
+    }
+    fw.close();
+  }
+
+  private void traversePath(String path) {
+    File file = new File(path);
+    LinkedList<File> list = new LinkedList<>();
+    if (file.exists()) {
+      if (null == file.listFiles()) {
+        return;
+      }
+      list.addAll(Arrays.asList(file.listFiles()));
+      while (!list.isEmpty()) {
+        File[] files = list.removeFirst().listFiles();
+        if (null == files) {
+          continue;
+        }
+        for (File f : files) {
+          if (f.isDirectory()) {
+            list.add(f);
+          } else {
+            if (f.getName().length() > 5 && f.getName().endsWith(".html")) {
+              filePaths.add(f.getAbsolutePath());
+            } else if (f.getName().length() > 4 && f.getName().endsWith(".ftl")) {
+              filePaths.add(f.getAbsolutePath());
+            } else if (f.getName().length() > 4 && f.getName().endsWith(".jsp")) {
+              filePaths.add(f.getAbsolutePath());
+            }
+          }
+        }
+      }
+    }
   }
 }
